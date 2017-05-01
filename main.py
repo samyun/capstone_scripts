@@ -16,6 +16,12 @@ FB_CONFIG = {
     "serviceAccount": "/home/pi/Desktop/capstone/webapp-5d9db-firebase-adminsdk-yousj-66a1e4421c.json"
 }
 
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+B1 = 18
+GPIO.setup(B1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 
 def wait_for_card_swipe():
     stripe = input('Swipe the card')
@@ -23,7 +29,7 @@ def wait_for_card_swipe():
 
 
 def logout_pressed():
-    return False
+    return GPIO.input(B1) == GPIO.LOW
 
 
 # Firebase
