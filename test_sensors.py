@@ -75,6 +75,7 @@ def run(ser, data):
 
 try:
     serial_port = init_serial()
+    flush_lines(serial_port)
 
     while True:
         output = run(serial_port, "0")
