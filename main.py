@@ -365,6 +365,8 @@ while True:
             else:
                 end_user = True
     except RuntimeError as e:
+        print(e)
+        continue
     except ValueError as e:
         print(e)
         continue
