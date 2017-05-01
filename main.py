@@ -143,7 +143,7 @@ def weight_is_not_zero():
 # OpenCV
 def init_cv():
     tracker = cv2.Tracker_create("BOOSTING")
-    video = cv2.VideoCapture()
+    video = cv2.VideoCapture(0)
 
     if not video.isOpened():
         raise RuntimeError("Could not open video")
