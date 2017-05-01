@@ -9,12 +9,6 @@ import sys, serial, time, datetime
 
 
 def flush_lines(ser):
-    # data = ser.readline().strip()
-    # data_str = data.decode('UTF-8')
-    # while data_str != "" and data_str != "<":
-    #     data = ser.readline().strip()
-    #     data_str = data.decode('UTF-8')
-    #     pass
     ser.flushOutput()
     ser.flushInput()
 
@@ -89,7 +83,7 @@ try:
     while True:
         input("enter")
         output = run(serial_port, "0")
-        print(output.decode("UTF-8")[:-2])
+        print(output.decode("UTF-8")[:-5])
 except serial.SerialException:
     print("Disconnected (Serial exception)")
 except IOError:

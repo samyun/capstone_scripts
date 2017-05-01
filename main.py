@@ -19,6 +19,8 @@ FB_CONFIG = {
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
+serial_port = None
+
 B1 = 18
 GPIO.setup(B1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
@@ -57,8 +59,75 @@ def write_set_to_firebase(fb_db, userkey, rep_data, set_num):
 
 
 # Pressure Sensors
+def flush_lines(ser):
+    ser.flushOutput()
+    ser.flushInput()
+
+
+def init_sensors(baud=9600):
+    # Port may vary, so look for it:
+    baseports = ['/dev/ttyUSB', '/dev/ttyACM']
+    ser = None
+    for baseport in baseports:
+        if ser : break
+        for i in range(0, 8):
+            try:
+                port = baseport + str(i)
+                ser = serial.Serial(port, baud, timeout=1)
+                print(("Opened", port))
+                break
+            except :
+                ser = None
+                pass
+
+    if not ser :
+        raise RuntimeError("Couldn't open a serial port")
+
+    ser.write_timeout = 1
+    ser.timeout = 1
+
+    # wait for initial arduino message
+    flush_lines(ser)
+
+    # tare sensors
+    input("Ready to tare? Enter a key with no load")
+    print('Tareing...')
+    for x in range(0, 9):
+        ser.readline().strip()
+        time.sleep(.1)
+    # send config command
+    ser.write(bytes("x", 'UTF-8'))
+    for x in range(0, 20):
+        ser.readline().strip()
+        time.sleep(.1)
+    # wait for messages
+    flush_lines(ser)
+    # send tare command
+    ser.write(bytes("1", 'UTF-8'))
+    for x in range(0, 20):
+        ser.readline().strip()
+        time.sleep(.1)
+    # wait for messages
+    flush_lines(ser)
+    # exit config
+    ser.write(bytes("x", 'UTF-8'))
+    for x in range(0, 3):
+        ser.readline().strip()
+        time.sleep(.1)
+    # wait for messages
+    flush_lines(ser)
+
+    serial_port = ser
+
+
 def read_raw_from_pressure_sensor():
-    return 0
+    # Send characters:
+    serial_port.write(bytes("0", 'UTF-8'))
+
+    # check for serial output:
+    output = serial_port.readline().strip()
+
+    return output.decode("UTF-8")[:-5]
 
 
 def weight_is_zero():
@@ -250,12 +319,16 @@ def perform_set(fb_db, set_number, weight):
     data = {"reps": rep, "weight": weight, "tilted": tilted}
     write_set_to_firebase(fb_db, user_key, data, set_number)
 
+
+# Start program
+
+# initialize firebase
+db = init_firebase()
+init_sensors()
+
 while True:
     # Wait for card swipe
     user_buckid = wait_for_card_swipe()
-
-    # initialize firebase
-    db = init_firebase()
 
     # get user key
     user_key = get_fb_user_key(db)
