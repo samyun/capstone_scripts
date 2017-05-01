@@ -38,6 +38,7 @@ def weight_is_not_zero():
 # OpenCV
 def init_cv():
     tracker = cv2.Tracker_create("BOOSTING")
+    # video = cv2.VideoCapture("test_video_trimmed.mp4")
     video = cv2.VideoCapture("tilted.mp4")
 
     if not video.isOpened():
@@ -64,14 +65,13 @@ def track_bar(track, frame, switch):
     # Update tracker
     ok, bbox = track.update(frame)
     if ok:
-
         y = int(bbox[1])
-        if y > 550 and switch:
+        if y > 400 and switch:
             switch = False
-        elif y < 550 and not switch:
+        elif y < 400 and not switch:
             switch = True
             increment = True
-    return switch, increment
+    return switch, increment, bbox
 
 
 def find_marker(img):
@@ -83,7 +83,7 @@ def find_marker(img):
     return cv2.minAreaRect(c), c
 
 
-def bar_is_tilted(frame):
+def track_tilt(frame):
     # BGR color bounds for colors on the bar.
     lower1 = [51, 16, 4]
     upper1 = [223, 25, 10]
@@ -129,18 +129,12 @@ def bar_is_tilted(frame):
     # Find center point for Blue
     bluecenter = (((box1[0] + box1[1]) / 2) + ((box1[2] + box1[3]) / 2)) / 2
 
-    # Commands to show the video for Blue
-    # cv2.circle(frame1, (bluecenter[0], bluecenter[1]), 7, (255, 255, 255), -1)
-    # cv2.putText(frame1, "center", (bluecenter[0] - 20, bluecenter[1] - 20),
-    # cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-    # cv2.imshow("Blue", frame1)
-
     # draw a bounding box around the image and display it for Red
 
     box2 = np.int0(cv2.boxPoints(marker2))
     cv2.drawContours(frame2, [box2], -1, (0, 255, 0), 2)
 
-    # Computinng the center
+    # Computing the center
     redcenter = (((box2[0] + box2[1]) / 2) + ((box2[2] + box2[3]) / 2)) / 2
 
     diff = abs(bluecenter[1] - redcenter[1])
@@ -153,7 +147,38 @@ def bar_is_tilted(frame):
         if diff < 250:
             tilted = True
 
-    return tilted
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        pass
+    return tilted, ang, bluecenter, redcenter
+
+
+def display_frame(frame, barbox, count, bluecenter, redcenter, ang):
+    # Place rep stuff
+    p1 = (int(barbox[0]), int(barbox[1]))
+    p2 = (int(barbox[0] + barbox[2]), int(barbox[1] + barbox[3]))
+    cv2.rectangle(frame, p1, p2, (0, 255, 0))
+
+    y = int(barbox[1])
+    if y > 400:
+        pos = "BELOW"
+    else:
+        pos = "ABOVE"
+
+    cv2.putText(frame, "Position: {}".format(pos), (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 0), 2)
+
+    cv2.putText(frame, "Count: {}".format(count), (10, 160),
+                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 0), 2)
+
+    # Place tilt stuff
+    cv2.circle(frame, (int(bluecenter[0]), int(bluecenter[1])), 7, (255, 255, 255), -1)
+    cv2.circle(frame, (int(redcenter[0]), int(redcenter[1])), 7, (255, 255, 255), -1)
+    cv2.putText(frame, "Angle: {}".format(ang), (700, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 0), 2)
+
+    cv2.imshow("Image", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        pass
 
 
 def perform_set(set_number, weight):
@@ -172,16 +197,22 @@ def perform_set(set_number, weight):
             break
 
         # track bar
-        bar_track_switch, bar_track_increment = track_bar(tracker, frame, bar_track_switch)
-        if bar_track_increment:
-            rep += 1
+        try:
+            bar_track_switch, bar_track_increment, box = track_bar(tracker, frame, bar_track_switch)
+            if bar_track_increment:
+                rep += 1
+        except ValueError:
+            continue
 
         # check tilt
-        # if bar_is_tilted(frame):
-        #     tilted = True
-        cv2.imshow("frame", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        try:
+            frame_tilted, angle, b_center, r_center = track_tilt(frame)
+            if frame_tilted:
+                tilted = True
+        except ValueError:
+            continue
+
+        display_frame(frame, box, rep, b_center, r_center, angle)
 
     video.release()
     cv2.destroyAllWindows()
