@@ -20,8 +20,6 @@ FB_CONFIG = {
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-serial_port = None
-
 B1 = 18
 GPIO.setup(B1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
@@ -68,6 +66,7 @@ def flush_lines(ser):
 def init_sensors(baud=9600):
     # Port may vary, so look for it:
     baseports = ['/dev/ttyUSB', '/dev/ttyACM']
+    global ser
     ser = None
     for baseport in baseports:
         if ser : break
