@@ -47,6 +47,9 @@ def init_serial(baud=9600):
 
     # tare sensors
     input("Ready to tare? Enter a key with no load")
+    for x in range(0, 7):
+        print(ser.readline().strip())
+        time.sleep(.1)
     # send config command
     ser.write(bytes("x", 'UTF-8'))
     print("sent x")
