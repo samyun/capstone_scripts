@@ -49,20 +49,26 @@ def init_serial(baud=9600):
     input("Ready to tare? Enter a key with no load")
     # send config command
     ser.write(bytes("x", 'UTF-8'))
-    print("sleep 1s")
-    time.sleep(1)
+    print("sent x")
+    for x in range(0, 10):
+        print(ser.readline().strip())
+        time.sleep(.1)
     # wait for messages
     flush_lines(ser)
     # send tare command
     ser.write(bytes("1", 'UTF-8'))
-    print("sleep 1s")
-    time.sleep(1)
+    print("sent 1")
+    for x in range(0, 10):
+        print(ser.readline().strip())
+        time.sleep(.1)
     # wait for messages
     flush_lines(ser)
     # exit config
     ser.write(bytes("x", 'UTF-8'))
-    print("sleep 1s")
-    time.sleep(1)
+    print("sent x")
+    for x in range(0, 10):
+        print(ser.readline().strip())
+        time.sleep(.1)
     # wait for messages
     flush_lines(ser)
 
@@ -82,7 +88,6 @@ try:
     while True:
         output = run(serial_port, "0")
         print(output)
-        time.sleep(.1)
 except serial.SerialException:
     print("Disconnected (Serial exception)")
 except IOError:
