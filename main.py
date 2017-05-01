@@ -335,6 +335,7 @@ while True:
         user_key = get_fb_user_key(db)
 
         # while weight is zero, wait
+        print("waiting for weight to be zero")
         while weight_is_zero():
             time.sleep(0.05)
 
@@ -342,6 +343,7 @@ while True:
         weight = read_raw_from_pressure_sensor()
 
         # while weight is on sensor, wait
+        print("waiting for weight to be not zero")
         while weight_is_not_zero():
             time.sleep(0.05)
 
@@ -355,6 +357,7 @@ while True:
 
             # Wait until logout pressed or 120s elapsed
             current = datetime.datetime.now()
+            print("waiting for logout button or 120s")
             while not logout_pressed() or (datetime.datetime.now() - current).total_seconds() < 120:
                 if weight_is_zero():
                     set_number += 1
