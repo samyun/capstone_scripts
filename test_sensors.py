@@ -69,7 +69,7 @@ def init_serial(baud=9600):
     # exit config
     ser.write(bytes("x", 'UTF-8'))
     print("sent x")
-    for x in range(0, 20):
+    for x in range(0, 3):
         print(ser.readline().strip())
         time.sleep(.1)
     # wait for messages
