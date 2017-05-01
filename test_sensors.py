@@ -43,8 +43,7 @@ def init_serial(baud=9600):
     ser.timeout = 1
 
     # wait for initial arduino message
-    while ser.readline().strip() != b"":
-        pass
+    flush_lines(ser)
 
     # tare sensors
     input("Ready to tare? Enter a key with no load")
