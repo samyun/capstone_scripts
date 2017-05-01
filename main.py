@@ -1,0 +1,256 @@
+import RPi.GPIO as GPIO
+import time
+from pyrebase import pyrebase
+import datetime
+import cv2
+import numpy as np
+import math
+import sys
+
+# Firebase Configuration
+FB_CONFIG = {
+    "apiKey": "apiKey""AIzaSyA2LCqqgPmU2nc_ozzvIg0s_HJX43Hdtxs",
+    "authDomain": "webapp-5d9db.firebaseapp.com",
+    "databaseURL": "https://webapp-5d9db.firebaseio.com",
+    "storageBucket": "webapp-5d9db.appspot.com",
+    "serviceAccount": "/home/pi/Desktop/webapp-5d9db-firebase-adminsdk-yousj-66a1e4421c.json"
+}
+
+
+def wait_for_card_swipe():
+    stripe = input('Swipe the card')
+    return stripe[8:17]
+
+
+def logout_pressed():
+    return False
+
+
+# Firebase
+def init_firebase():
+    firebase = pyrebase.initialize_app(FB_CONFIG)
+    # Firebase Database Intialization
+    db = firebase.database()
+    return db
+
+
+def get_fb_user_key(fb_db):
+    users = fb_db.child("registeredUsers").get()
+    for user in users.each():
+        buckid = user.val().get("buckid")
+        if buckid == user_buckid:
+            userkey = user.key()
+            return userkey
+    raise RuntimeError("Couldn't find user in Firebase DB")
+
+
+def write_set_to_firebase(fb_db, userkey, rep_data, set_num):
+    date_string = "Date: " + (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    set_string = "set number: {}".format(set_num)
+    fb_db.child("registeredUsers").child(userkey).child(date_string).child(set_string).set(rep_data)
+
+
+# Pressure Sensors
+def read_raw_from_pressure_sensor():
+    return 0
+
+
+def weight_is_zero():
+    w = read_raw_from_pressure_sensor()
+    return w < 4
+
+
+def weight_is_not_zero():
+    w = read_raw_from_pressure_sensor()
+    return w >= 4
+
+
+# OpenCV
+def init_cv():
+    tracker = cv2.Tracker_create("BOOSTING")
+    video = cv2.VideoCapture()
+
+    if not video.isOpened():
+        raise RuntimeError("Could not open video")
+
+    # Read first frame.
+    ok, frame = video.read()
+    if not ok:
+        raise RuntimeError('Cannot read video')
+
+    # Define an initial bounding box
+    bbox = (50, 250, 1150, 100)
+
+    # Initialize tracker with first frame and bounding box
+    ok = tracker.init(frame, bbox)
+    if not ok:
+        raise RuntimeError('Error initializing tracker')
+
+    return video, tracker
+
+
+def track_bar(track, frame, switch):
+    increment = False
+    # Update tracker
+    ok, bbox = track.update(frame)
+    if ok:
+
+        y = int(bbox[1])
+        if y > 550 and switch:
+            switch = False
+        elif y < 550 and not switch:
+            switch = True
+            increment = True
+    return switch, increment
+
+
+def find_marker(img):
+    # Returns the contour corresponding to maximum area.
+    edged = cv2.Canny(img, 35, 125)
+    (_, cnts, _) = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    c = max(cnts, key=cv2.contourArea)
+
+    return cv2.minAreaRect(c), c
+
+
+def bar_is_tilted(frame):
+    # BGR color bounds for colors on the bar.
+    lower1 = [51, 16, 4]
+    upper1 = [223, 25, 10]
+    # ^ Blue
+    lower2 = [0, 0, 153]
+    upper2 = [70, 80, 255]
+    # ^ Red
+
+    tilted = False
+    # ^ Initializations for data being saved
+
+    # process the image
+    # create NumPy arrays from the boundaries
+    lower1 = np.array(lower1, dtype="uint8")
+    upper1 = np.array(upper1, dtype="uint8")
+
+    # find the colors within the specified boundaries and apply
+    # the mask
+    mask1 = cv2.inRange(frame, lower1, upper1)
+    frame1 = cv2.bitwise_and(frame, frame, mask=mask1)
+
+    # create NumPy arrays from the boundaries
+    lower2 = np.array(lower2, dtype="uint8")
+    upper2 = np.array(upper2, dtype="uint8")
+
+    # find the colors within the specified boundaries and apply
+    # the mask
+    mask2 = cv2.inRange(frame, lower2, upper2)
+    frame2 = cv2.bitwise_and(frame, frame, mask=mask2)
+
+    kernel2 = np.ones((10, 20), np.uint8)
+
+    frame1 = cv2.dilate(frame1, kernel2, iterations=2)
+    frame2 = cv2.dilate(frame2, kernel2, iterations=1)
+
+    # Making a box around each color
+    marker1, maxcont1 = find_marker(frame1)
+    marker2, maxcont2 = find_marker(frame2)
+
+    # draw a bounding box around the image and display it for Blue
+    box1 = np.int0(cv2.boxPoints(marker1))
+    cv2.drawContours(frame1, [box1], -1, (0, 255, 0), 2)
+    # Find center point for Blue
+    bluecenter = (((box1[0] + box1[1]) / 2) + ((box1[2] + box1[3]) / 2)) / 2
+
+    # Commands to show the video for Blue
+    ##	cv2.circle(frame1, (bluecenter[0], bluecenter[1]), 7, (255, 255, 255), -1)
+    ##	cv2.putText(frame1, "center", (bluecenter[0] - 20, bluecenter[1] - 20),
+    ##	cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    # cv2.imshow("Blue", frame1)
+
+    # draw a bounding box around the image and display it for Red
+
+    box2 = np.int0(cv2.boxPoints(marker2))
+    cv2.drawContours(frame2, [box2], -1, (0, 255, 0), 2)
+
+    # Computinng the center
+    redcenter = (((box2[0] + box2[1]) / 2) + ((box2[2] + box2[3]) / 2)) / 2
+
+    diff = abs(bluecenter[1] - redcenter[1])
+
+    # Finding the angle of difference.
+    ang = math.degrees(math.atan(float(redcenter[1] - bluecenter[1]) / (redcenter[0] - bluecenter[0])))
+
+    # This is to remove potential fluctuations in the contour detection
+    if diff > 20:
+        if diff < 250:
+            tilted = True
+
+    return tilted
+
+
+def perform_set(fb_db, set_number, weight):
+    # init mocap
+    video, tracker = init_cv()
+    rep = 0
+    tilted = False
+    flared = False
+
+    bar_track_switch = True
+
+    while weight_is_not_zero():
+        # Read a new frame
+        ok, frame = video.read()
+        if not ok:
+            raise RuntimeError("Couldn't read frame")
+
+        # track bar
+        bar_track_switch, bar_track_increment = track_bar(tracker, frame, bar_track_switch)
+        if bar_track_increment:
+            rep += 1
+
+        # check tilt
+        if bar_is_tilted(frame):
+            tilted = True
+
+    video.release()
+    # weight is on sensor, set is complete
+    data = {"reps": rep, "weight": weight, "tilted": tilted}
+    write_set_to_firebase(fb_db, user_key, data, set_number)
+
+while True:
+    # Wait for card swipe
+    user_buckid = wait_for_card_swipe()
+
+    # initialize firebase
+    db = init_firebase()
+
+    # get user key
+    user_key = get_fb_user_key(db)
+
+    # while weight is zero, wait
+    while weight_is_zero():
+        time.sleep(0.05)
+
+    # when weight > 0, get weight of lift
+    weight = read_raw_from_pressure_sensor()
+
+    # while weight is on sensor, wait
+    while weight_is_not_zero():
+        time.sleep(0.05)
+
+    # when weight is off sensor, start set
+    set_number = 0
+    end_user = False
+
+    # loop until end_user is True
+    while end_user is False:
+        perform_set(db, set_number, weight)
+
+        # Wait until logout pressed or 120s elapsed
+        current = datetime.datetime.now()
+        while not logout_pressed() or (datetime.datetime.now() - current).total_seconds() < 120:
+            if weight_is_zero():
+                set_number += 1
+                break
+        else:
+            end_user = True
+
+
