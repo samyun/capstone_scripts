@@ -5,6 +5,7 @@ import datetime
 import cv2
 import numpy as np
 import math
+import serial
 import sys
 
 # Firebase Configuration
