@@ -47,13 +47,13 @@ def init_serial(baud=9600):
 
     # tare sensors
     input("Ready to tare? Enter a key with no load")
-    for x in range(0, 7):
+    for x in range(0, 9):
         print(ser.readline().strip())
         time.sleep(.1)
     # send config command
     ser.write(bytes("x", 'UTF-8'))
     print("sent x")
-    for x in range(0, 10):
+    for x in range(0, 20):
         print(ser.readline().strip())
         time.sleep(.1)
     # wait for messages
@@ -61,7 +61,7 @@ def init_serial(baud=9600):
     # send tare command
     ser.write(bytes("1", 'UTF-8'))
     print("sent 1")
-    for x in range(0, 10):
+    for x in range(0, 20):
         print(ser.readline().strip())
         time.sleep(.1)
     # wait for messages
@@ -69,7 +69,7 @@ def init_serial(baud=9600):
     # exit config
     ser.write(bytes("x", 'UTF-8'))
     print("sent x")
-    for x in range(0, 10):
+    for x in range(0, 20):
         print(ser.readline().strip())
         time.sleep(.1)
     # wait for messages
