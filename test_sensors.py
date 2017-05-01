@@ -49,17 +49,17 @@ def init_serial(baud=9600):
     input("Ready to tare? Enter a key with no load")
     # send config command
     ser.write(bytes("x", 'UTF-8'))
-    time.sleep(.1)
+    time.sleep(1)
     # wait for messages
     flush_lines(ser)
     # send tare command
     ser.write(bytes("1", 'UTF-8'))
-    time.sleep(.1)
+    time.sleep(1)
     # wait for messages
     flush_lines(ser)
     # exit config
     ser.write(bytes("x", 'UTF-8'))
-    time.sleep(.1)
+    time.sleep(1)
     # wait for messages
     flush_lines(ser)
 
