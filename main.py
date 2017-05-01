@@ -127,7 +127,7 @@ def read_raw_from_pressure_sensor():
     # check for serial output:
     output = serial_port.readline().strip()
 
-    return int(output.decode("UTF-8")[:-5])
+    return int(float(output.decode("UTF-8")[:-5]))
 
 
 def weight_is_zero():
