@@ -58,68 +58,66 @@ def write_set_to_firebase(fb_db, userkey, rep_data, set_num):
 
 
 # Pressure Sensors
-def flush_lines(ser):
-    ser.flushOutput()
-    ser.flushInput()
+def flush_lines(serial_port):
+    serial_port.flushOutput()
+    serial_port.flushInput()
 
 
 def init_sensors(baud=9600):
     # Port may vary, so look for it:
     baseports = ['/dev/ttyUSB', '/dev/ttyACM']
-    global ser
-    ser = None
+    global serial_port
+    serial_port = None
     for baseport in baseports:
-        if ser : break
+        if serial_port : break
         for i in range(0, 8):
             try:
                 port = baseport + str(i)
-                ser = serial.Serial(port, baud, timeout=1)
+                serial_port = serial.Serial(port, baud, timeout=1)
                 print(("Opened", port))
                 break
             except :
-                ser = None
+                serial_port = None
                 pass
 
-    if not ser :
+    if not serial_port:
         raise RuntimeError("Couldn't open a serial port")
 
-    ser.write_timeout = 1
-    ser.timeout = 1
+    serial_port.write_timeout = 1
+    serial_port.timeout = 1
 
     # wait for initial arduino message
-    flush_lines(ser)
+    flush_lines(serial_port)
 
     # tare sensors
     input("Ready to tare? Enter a key with no load")
     print('Tareing...')
     for x in range(0, 9):
-        ser.readline().strip()
+        serial_port.readline().strip()
         time.sleep(.1)
     # send config command
-    ser.write(bytes("x", 'UTF-8'))
+    serial_port.write(bytes("x", 'UTF-8'))
     for x in range(0, 20):
-        ser.readline().strip()
+        serial_port.readline().strip()
         time.sleep(.1)
     # wait for messages
-    flush_lines(ser)
+    flush_lines(serial_port)
     # send tare command
-    ser.write(bytes("1", 'UTF-8'))
+    serial_port.write(bytes("1", 'UTF-8'))
     for x in range(0, 20):
-        ser.readline().strip()
+        serial_port.readline().strip()
         time.sleep(.1)
     # wait for messages
-    flush_lines(ser)
+    flush_lines(serial_port)
     # exit config
-    ser.write(bytes("x", 'UTF-8'))
+    serial_port.write(bytes("x", 'UTF-8'))
     for x in range(0, 3):
-        ser.readline().strip()
+        serial_port.readline().strip()
         time.sleep(.1)
     # wait for messages
-    flush_lines(ser)
+    flush_lines(serial_port)
 
     print("tared")
-
-    serial_port = ser
 
 
 def read_raw_from_pressure_sensor():
