@@ -47,12 +47,12 @@ def init_serial(baud=9600):
 
     # tare sensors
     input("Ready to tare? Enter a key with no load")
+    print('Tareing...')
     for x in range(0, 9):
         ser.readline().strip()
         time.sleep(.1)
     # send config command
     ser.write(bytes("x", 'UTF-8'))
-    print("sent x")
     for x in range(0, 20):
         ser.readline().strip()
         time.sleep(.1)
@@ -60,7 +60,6 @@ def init_serial(baud=9600):
     flush_lines(ser)
     # send tare command
     ser.write(bytes("1", 'UTF-8'))
-    print("sent 1")
     for x in range(0, 20):
         ser.readline().strip()
         time.sleep(.1)
@@ -68,7 +67,6 @@ def init_serial(baud=9600):
     flush_lines(ser)
     # exit config
     ser.write(bytes("x", 'UTF-8'))
-    print("sent x")
     for x in range(0, 3):
         ser.readline().strip()
         time.sleep(.1)
@@ -91,7 +89,7 @@ try:
     while True:
         input("enter")
         output = run(serial_port, "0")
-        print(output)
+        print(output.decode("UTF-8")[:-2])
 except serial.SerialException:
     print("Disconnected (Serial exception)")
 except IOError:
