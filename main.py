@@ -118,6 +118,8 @@ def init_sensors(baud=9600):
     # wait for messages
     flush_lines(ser)
 
+    print("tared")
+
     serial_port = ser
 
 
@@ -328,38 +330,43 @@ db = init_firebase()
 init_sensors()
 
 while True:
-    # Wait for card swipe
-    user_buckid = wait_for_card_swipe()
+    try:
+        # Wait for card swipe
+        user_buckid = wait_for_card_swipe()
 
-    # get user key
-    user_key = get_fb_user_key(db)
+        # get user key
+        user_key = get_fb_user_key(db)
 
-    # while weight is zero, wait
-    while weight_is_zero():
-        time.sleep(0.05)
+        # while weight is zero, wait
+        while weight_is_zero():
+            time.sleep(0.05)
 
-    # when weight > 0, get weight of lift
-    weight = read_raw_from_pressure_sensor()
+        # when weight > 0, get weight of lift
+        weight = read_raw_from_pressure_sensor()
 
-    # while weight is on sensor, wait
-    while weight_is_not_zero():
-        time.sleep(0.05)
+        # while weight is on sensor, wait
+        while weight_is_not_zero():
+            time.sleep(0.05)
 
-    # when weight is off sensor, start set
-    set_number = 0
-    end_user = False
+        # when weight is off sensor, start set
+        set_number = 0
+        end_user = False
 
-    # loop until end_user is True
-    while end_user is False:
-        perform_set(db, set_number, weight)
+        # loop until end_user is True
+        while end_user is False:
+            perform_set(db, set_number, weight)
 
-        # Wait until logout pressed or 120s elapsed
-        current = datetime.datetime.now()
-        while not logout_pressed() or (datetime.datetime.now() - current).total_seconds() < 120:
-            if weight_is_zero():
-                set_number += 1
-                break
-        else:
-            end_user = True
+            # Wait until logout pressed or 120s elapsed
+            current = datetime.datetime.now()
+            while not logout_pressed() or (datetime.datetime.now() - current).total_seconds() < 120:
+                if weight_is_zero():
+                    set_number += 1
+                    break
+            else:
+                end_user = True
+    except RuntimeError as e:
+    except ValueError as e:
+        print(e)
+        continue
 
 
